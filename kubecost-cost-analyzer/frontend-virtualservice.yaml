@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kubecost
+  namespace: kubecost
+spec:
+  gateways:
+  - platform-infrastructure/api-gateway-internal
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /kubecost/
+    - uri:
+        exact: /kubecost
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: kubecost-cost-analyzer
+        port:
+          number: 9090

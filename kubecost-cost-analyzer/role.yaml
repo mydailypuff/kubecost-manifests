@@ -1,0 +1,21 @@
+# Source: cost-analyzer/templates/cost-analyzer-cluster-role-template.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: kubecost
+  name: kubecost-cost-analyzer
+  labels:
+    app.kubernetes.io/name: cost-analyzer
+    helm.sh/chart: cost-analyzer-1.102.1
+    app.kubernetes.io/instance: kubecost
+    app.kubernetes.io/managed-by: Helm
+    app: cost-analyzer
+rules:
+- apiGroups:
+    - ''
+  resources:
+    - "pods/log"
+  verbs:
+    - get
+    - list
+    - watch

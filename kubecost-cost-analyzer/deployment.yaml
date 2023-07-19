@@ -1,0 +1,221 @@
+# Source: cost-analyzer/templates/cost-analyzer-deployment-template.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubecost-cost-analyzer
+  namespace: kubecost
+  labels:
+    app.kubernetes.io/name: cost-analyzer
+    helm.sh/chart: cost-analyzer-1.102.1
+    app.kubernetes.io/instance: kubecost
+    app.kubernetes.io/managed-by: Helm
+    app: cost-analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+        app.kubernetes.io/name: cost-analyzer
+        app.kubernetes.io/instance: kubecost
+        app: cost-analyzer
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cost-analyzer
+        app.kubernetes.io/instance: kubecost
+        app: cost-analyzer
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      restartPolicy: Always
+      serviceAccountName: kubecost-cost-analyzer
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+            items:
+              - key: nginx.conf
+                path: default.conf
+        - name: persistent-configs
+          persistentVolumeClaim:
+            claimName: kubecost-cost-analyzer
+      initContainers:
+      containers:
+        - image: gcr.io/kubecost1/cost-model:prod-1.102.1
+          name: cost-model
+          imagePullPolicy: Always
+          ports:
+          - name: tcp-model
+            containerPort: 9003
+            protocol: TCP
+          - name: tcp-frontend
+            containerPort: 9090
+            protocol: TCP
+          resources:
+            requests:
+              cpu: 200m
+              memory: 55Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 200
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 200
+          volumeMounts:
+            - name: persistent-configs
+              mountPath: /var/configs
+          env:
+            - name: GRAFANA_ENABLED
+              value: "true"
+            - name: READ_ONLY
+              value: "false"
+            - name: PROMETHEUS_SERVER_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: kubecost-cost-analyzer
+                  key: prometheus-server-endpoint
+            - name: CLOUD_PROVIDER_API_KEY
+              value: "AIzaSyDXQPG_MHUEy9neR7stolq6l0ujXmjJlvk" # The GCP Pricing API key.This GCP api key is expected to be here and is limited to accessing google's billing API.
+            - name: CONFIG_PATH
+              value: /var/configs/
+            - name: DB_PATH
+              value: /var/db/
+            - name: CLUSTER_PROFILE
+              value: production
+            - name: REMOTE_WRITE_PASSWORD
+              value: admin
+            - name: EMIT_POD_ANNOTATIONS_METRIC
+              value: "false"
+            - name: EMIT_NAMESPACE_ANNOTATIONS_METRIC
+              value: "false"
+            - name: EMIT_KSM_V1_METRICS
+              value: "true"
+            - name: EMIT_KSM_V1_METRICS_ONLY # ONLY emit KSM v1 metrics that do not exist in KSM 2 by default
+              value: "false"
+            - name: LOG_COLLECTION_ENABLED
+              value: "true"
+            - name: PRODUCT_ANALYTICS_ENABLED
+              value: "true"
+            - name: ERROR_REPORTING_ENABLED
+              value: "true"
+            - name: VALUES_REPORTING_ENABLED
+              value: "true"
+            - name: SENTRY_DSN
+              value: "https://71964476292e4087af8d5072afe43abd@o394722.ingest.sentry.io/5245431"
+            - name: LEGACY_EXTERNAL_API_DISABLED
+              value: "false"
+            - name: OUT_OF_CLUSTER_PROM_METRICS_ENABLED
+              value: "false"
+            - name: CACHE_WARMING_ENABLED
+              value: "false"
+            - name: SAVINGS_CACHE_WARMING_ENABLED
+              value: "true"
+            - name: ETL_ENABLED
+              value: "true"
+            - name: ETL_TO_DISK_ENABLED
+              value: "true"
+            - name: ETL_STORE_READ_ONLY
+              value: "false"
+            - name : ETL_CLOUD_USAGE_ENABLED
+              value: "true"
+            - name: CLOUD_ASSETS_EXCLUDE_PROVIDER_ID
+              value: "false"
+            - name: ETL_CLOUD_REFRESH_RATE_HOURS
+              value: "6"
+            - name: ETL_CLOUD_QUERY_WINDOW_DAYS
+              value: "7"
+            - name: ETL_CLOUD_RUN_WINDOW_DAYS
+              value: "3"
+            - name: ETL_RESOLUTION_SECONDS
+              value: "300"
+            - name: ETL_MAX_PROMETHEUS_QUERY_DURATION_MINUTES
+              value: "1440"
+            - name: ETL_DAILY_STORE_DURATION_DAYS
+              value: "91"
+            - name: ETL_HOURLY_STORE_DURATION_HOURS
+              value: "49"
+            - name: ETL_WEEKLY_STORE_DURATION_WEEKS
+              value: "53"
+            - name: ETL_FILE_STORE_ENABLED
+              value: "true"
+            - name: ETL_ASSET_RECONCILIATION_ENABLED
+              value: "true"
+            - name: ETL_USE_UNBLENDED_COST
+              value: "false"
+            - name: CONTAINER_STATS_ENABLED
+              value: "false"
+            - name: RECONCILE_NETWORK
+              value: "true"
+            - name: KUBECOST_METRICS_POD_ENABLED
+              value: "false"
+            - name: PV_ENABLED
+              value: "true"
+            - name: MAX_QUERY_CONCURRENCY
+              value: "5"
+            - name: UTC_OFFSET
+              value: "0"
+            - name: CLUSTER_ID
+              value: cluster-one
+            - name: SQL_ADDRESS
+              value: pgprometheus
+            - name: COST_EVENTS_AUDIT_ENABLED
+              value: "false"
+            - name: RELEASE_NAME
+              value: kubecost
+            - name: KUBECOST_NAMESPACE
+              value: kubecost
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: KUBECOST_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: kubecost-cost-analyzer
+                  key: kubecost-token
+        - image: gcr.io/kubecost1/frontend:prod-1.102.1
+          env:
+            - name: GET_HOSTS_FROM
+              value: dns
+          name: cost-analyzer-frontend
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/
+          resources:
+            requests:
+              cpu: 10m
+              memory: 55Mi
+          imagePullPolicy: Always
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 200
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 200

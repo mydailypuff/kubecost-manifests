@@ -1,0 +1,19 @@
+# Source: cost-analyzer/templates/cost-analyzer-pvc-template.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: kubecost-cost-analyzer
+  namespace: kubecost
+  labels:
+    app.kubernetes.io/name: cost-analyzer
+    helm.sh/chart: cost-analyzer-1.102.1
+    app.kubernetes.io/instance: kubecost
+    app.kubernetes.io/managed-by: Helm
+    app: cost-analyzer
+spec:
+  storageClassName: gp2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 32Gi

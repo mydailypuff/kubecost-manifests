@@ -1,0 +1,23 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: kubecost-prometheus-server
+  namespace: kubecost
+spec:
+  gateways:
+  - platform-infrastructure/api-gateway-internal
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        prefix: /prometheus/
+    - uri:
+        exact: /prometheus
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: kubecost-prometheus-server          
+        port:
+          number: 80

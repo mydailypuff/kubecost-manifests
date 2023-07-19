@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gp2-prom
+  namespace: kubecost
+  labels:
+    type: kubecost
+spec:
+  storageClassName: gp2
+  capacity:
+    storage: 32Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data"
