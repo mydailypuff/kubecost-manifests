@@ -4,6 +4,7 @@ kind: ClusterRole
 metadata:
   name: kubecost-cost-analyzer
   labels:
+
     app.kubernetes.io/name: cost-analyzer
     helm.sh/chart: cost-analyzer-1.102.1
     app.kubernetes.io/instance: kubecost
